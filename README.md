@@ -5,7 +5,7 @@ A lightweight Telegram bot built to search your personal Notion database for Pla
 ## Features
 - **Searchable Database**: Retrieve game entry dates and status directly from Notion.
 - **Privacy First**: Designed to run on your own infrastructure with secure environment variable management.
-- **Easy Deployment**: Fully Dockerized for rapid setup on any VPS.
+- **Access Control**: Whitelist specific groups via configuration.
 
 ## Prerequisites
 1. **Telegram Bot Token**: Get one by messaging [@BotFather](https://t.me/botfather).
@@ -36,7 +36,7 @@ A lightweight Telegram bot built to search your personal Notion database for Pla
 ## 功能特点
 - **数据库查询**: 直接从 Notion 获取游戏的领取日期和状态。
 - **隐私优先**: 设计为在本地或私有 VPS 上运行，通过环境变量管理敏感信息。
-- **部署便捷**: 完全 Docker 化，快速部署到任何 VPS。
+- **访问控制**: 通过配置设置白名单，仅允许指定群组使用。
 
 ## 前置准备
 1. **Telegram Bot Token**: 通过 [BotFather](https://t.me/botfather) 创建机器人并获取 Token。
