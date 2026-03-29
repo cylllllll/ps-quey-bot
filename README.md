@@ -1,35 +1,6 @@
-# Notion PS+ Game Query Bot
+[English](README.en.md) | [简体中文](README.md) | [繁體中文](README.zh-TW.md)
 
-A lightweight Telegram bot built to search your personal Notion database for PlayStation Plus game release history.
-
-## Features
-- **Searchable Database**: Retrieve game entry dates and status directly from Notion.
-- **Privacy First**: Designed to run on your own infrastructure with secure environment variable management.
-- **Access Control**: Whitelist specific groups and individual users via configuration.
-
-## Prerequisites
-1. **Telegram Bot Token**: Get one by messaging [@BotFather](https://t.me/botfather).
-2. **Notion Integration**:
-   - Create an integration at [Notion Developers](https://www.notion.so/my-integrations).
-   - Share your database with the integration.
-   - Copy your **Integration Internal Token** and **Database ID**.
-
-## Setup
-1. **Clone the repository:**
-   ```bash
-   git clone <your-repo-url>
-   cd bot-notion
-   ```
-2. **Environment Configuration:**
-   Copy `config.example` to `.env` and add your credentials.
-
-## Deploy with Docker
-1. **Build the image:** `docker build -t notion-bot .`
-2. **Run:** `docker run -d --name notion-bot --env-file .env --restart unless-stopped notion-bot`
-
----
-
-# 中文说明 (Chinese Documentation)
+# Notion PS+ Game Query Bot (简体中文)
 
 一个轻量级的 Telegram 机器人，用于查询你个人的 Notion 数据库中的 PlayStation Plus 游戏领取记录。
 
@@ -46,7 +17,11 @@ A lightweight Telegram bot built to search your personal Notion database for Pla
    - 获取 **Integration Internal Token** 和 **Database ID**。
 
 ## 快速安装
-1. **克隆代码**: `git clone <your-repo-url>`
+1. **克隆代码**:
+   ```bash
+   git clone <your-repo-url>
+   cd bot-notion
+   ```
 2. **环境变量配置**: 复制 `config.example` 到 `.env`，填入你的 Token 和 ID。
 
 ## Docker 部署
