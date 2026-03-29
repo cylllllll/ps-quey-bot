@@ -1,7 +1,7 @@
 import os
 import logging
 from telegram import Update
-from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, filters, MessageHandler
+from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
 from notion_client import Client
 
 # Load API keys
@@ -9,6 +9,7 @@ BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 NOTION_TOKEN = os.getenv("NOTION_API_KEY")
 DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
 ALLOWED_GROUP_IDS = os.getenv("ALLOWED_GROUP_IDS", "").split(",")
+ALLOWED_USER_IDS = os.getenv("ALLOWED_USER_IDS", "").split(",")
 
 notion = Client(auth=NOTION_TOKEN)
 
@@ -18,9 +19,17 @@ logging.basicConfig(
 )
 
 def is_allowed(update: Update):
-    if not ALLOWED_GROUP_IDS or ALLOWED_GROUP_IDS == [""]:
-        return True
-    return str(update.effective_chat.id) in ALLOWED_GROUP_IDS
+    chat_type = update.effective_chat.type
+    chat_id = str(update.effective_chat.id)
+
+    if chat_type == 'private':
+        if not ALLOWED_USER_IDS or ALLOWED_USER_IDS == [""]:
+            return True
+        return chat_id in ALLOWED_USER_IDS
+    else: # Group or Supergroup
+        if not ALLOWED_GROUP_IDS or ALLOWED_GROUP_IDS == [""]:
+            return True
+        return chat_id in ALLOWED_GROUP_IDS
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_allowed(update):

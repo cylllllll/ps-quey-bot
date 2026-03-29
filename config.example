@@ -9,3 +9,6 @@ NOTION_DATABASE_ID=your_notion_database_id_here
 
 # Allowed Group IDs (comma-separated, e.g., -100123456789,-100987654321)
 ALLOWED_GROUP_IDS=
+
+# Allowed User IDs (comma-separated, e.g., 123456789,987654321)
+ALLOWED_USER_IDS=
