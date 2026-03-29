@@ -173,11 +173,32 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await show_page(update, context, current_page - 1)
 
 async def handle_mention(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = (update.message.text or update.message.caption or "").replace(f"@{context.bot.username}", "").strip()
-    if not text and update.message.reply_to_message: text = update.message.reply_to_message.text or ""
-    if not text: return # 空消息不处理
+    if not update.message: return
+    raw_text = update.message.text or update.message.caption or ""
+    if not raw_text: return
+    
+    bot_username = context.bot.username
+    is_mentioned = False
+    text = raw_text
+    
+    if update.effective_chat.type == 'private':
+        is_mentioned = True
+    elif bot_username and f"@{bot_username}" in raw_text:
+        is_mentioned = True
+        text = raw_text.replace(f"@{bot_username}", "").strip()
+    elif update.message.reply_to_message and update.message.reply_to_message.from_user.id == context.bot.id:
+        is_mentioned = True
+        text = raw_text.strip()
+        
+    if not is_mentioned:
+        return
 
     if not is_allowed(update): return
+    
+    if not text and update.message.reply_to_message: 
+        text = update.message.reply_to_message.text or ""
+        
+    if not text: return
     
     logging.info(f"Parsed query: {text}")
     await perform_notion_query(text, update.effective_chat.id, update.message, context)
