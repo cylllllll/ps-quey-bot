@@ -23,8 +23,8 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 def is_allowed(update: Update):
     chat_id = str(update.effective_chat.id)
     if update.effective_chat.type == 'private':
-        return not ALLOWED_USER_IDS or ALLOWED_USER_IDS == [""] or chat_id in ALLOWED_USER_IDS
-    return not ALLOWED_GROUP_IDS or ALLOWED_GROUP_IDS == [""] or chat_id in ALLOWED_GROUP_IDS
+        return chat_id in ALLOWED_USER_IDS
+    return chat_id in ALLOWED_GROUP_IDS
 
 def get_page_title(page):
     props = page.get("properties", {})
