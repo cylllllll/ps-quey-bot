@@ -8,53 +8,52 @@ A lightweight Telegram bot built to search your personal Notion database for Pla
 - **Easy Deployment**: Fully Dockerized for rapid setup on any VPS.
 
 ## Prerequisites
-
-Before setting up, ensure you have:
-1. **Telegram Bot Token**: Get one by messaging [@BotFather](https://t.me/botfather) on Telegram.
+1. **Telegram Bot Token**: Get one by messaging [@BotFather](https://t.me/botfather).
 2. **Notion Integration**:
    - Create an integration at [Notion Developers](https://www.notion.so/my-integrations).
-   - Share your database with the integration (click the "..." menu in your Notion database -> Add Connections -> Select your integration).
+   - Share your database with the integration.
    - Copy your **Integration Internal Token** and **Database ID**.
 
 ## Setup
-
 1. **Clone the repository:**
    ```bash
    git clone <your-repo-url>
    cd bot-notion
    ```
-
 2. **Environment Configuration:**
-   Copy the example config and fill in your keys:
-   ```bash
-   cp .env.example .env
-   # Edit .env and add your credentials:
-   # TELEGRAM_BOT_TOKEN=...
-   # NOTION_API_KEY=...
-   # NOTION_DATABASE_ID=...
-   ```
+   Copy `.env.example` to `.env` and add your credentials.
 
 ## Deploy with Docker
+1. **Build the image:** `docker build -t notion-bot .`
+2. **Run:** `docker run -d --name notion-bot --env-file .env --restart unless-stopped notion-bot`
 
-1. **Build the image:**
-   ```bash
-   docker build -t notion-bot .
-   ```
+---
 
-2. **Run in background:**
-   ```bash
-   docker run -d \
-     --name notion-bot \
-     --env-file .env \
-     --restart unless-stopped \
-     notion-bot
-   ```
+# 中文说明 (Chinese Documentation)
 
-## Usage
-- `/start`: Check bot status.
-- `/query <game_name>`: Search for a specific game in your PS+ list.
-- `/help`: Show available commands.
+一个轻量级的 Telegram 机器人，用于查询你个人的 Notion 数据库中的 PlayStation Plus 游戏领取记录。
 
-## Troubleshooting
-- **Database not found?** Ensure the Notion integration has permission to access the page/database.
-- **Bot unresponsive?** Check logs using `docker logs notion-bot`.
+## 功能特点
+- **数据库查询**: 直接从 Notion 获取游戏的领取日期和状态。
+- **隐私优先**: 设计为在本地或私有 VPS 上运行，通过环境变量管理敏感信息。
+- **部署便捷**: 完全 Docker 化，快速部署到任何 VPS。
+
+## 前置准备
+1. **Telegram Bot Token**: 通过 [BotFather](https://t.me/botfather) 创建机器人并获取 Token。
+2. **Notion 集成**:
+   - 在 [Notion Developers](https://www.notion.so/my-integrations) 创建 Integration。
+   - 将你的 Notion 数据库与该 Integration 共享。
+   - 获取 **Integration Internal Token** 和 **Database ID**。
+
+## 快速安装
+1. **克隆代码**: `git clone <your-repo-url>`
+2. **环境变量配置**: 复制 `.env.example` 到 `.env`，填入你的 Token 和 ID。
+
+## Docker 部署
+1. **构建镜像**: `docker build -t notion-bot .`
+2. **运行容器**: `docker run -d --name notion-bot --env-file .env --restart unless-stopped notion-bot`
+
+## 指令
+- `/start`: 检查机器人状态。
+- `/query <游戏名称>`: 搜索数据库中的游戏。
+- `/help`: 查看帮助。
