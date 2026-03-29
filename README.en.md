@@ -8,6 +8,9 @@ A lightweight Telegram bot built to search your personal Notion database for Pla
 - **Searchable Database**: Retrieve game entry dates and status directly from Notion.
 - **Privacy First**: Designed to run on your own infrastructure with secure environment variable management.
 - **Access Control**: Whitelist specific groups and individual users via configuration.
+- **Natural Interaction**: Supports queries via direct mentions or replies without commands.
+- **Pagination**: Automatically paginates results exceeding 5 items.
+- **Robustness**: Includes comprehensive error handling for reliability.
 
 ## Prerequisites
 1. **Telegram Bot Token**: Get one by messaging [@BotFather](https://t.me/botfather).
