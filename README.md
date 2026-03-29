@@ -21,7 +21,7 @@ A lightweight Telegram bot built to search your personal Notion database for Pla
    cd bot-notion
    ```
 2. **Environment Configuration:**
-   Copy `.env.example` to `.env` and add your credentials.
+   Copy `config.example` to `.env` and add your credentials.
 
 ## Deploy with Docker
 1. **Build the image:** `docker build -t notion-bot .`
@@ -47,7 +47,7 @@ A lightweight Telegram bot built to search your personal Notion database for Pla
 
 ## 快速安装
 1. **克隆代码**: `git clone <your-repo-url>`
-2. **环境变量配置**: 复制 `.env.example` 到 `.env`，填入你的 Token 和 ID。
+2. **环境变量配置**: 复制 `config.example` 到 `.env`，填入你的 Token 和 ID。
 
 ## Docker 部署
 1. **构建镜像**: `docker build -t notion-bot .`
