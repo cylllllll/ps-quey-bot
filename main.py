@@ -1,7 +1,7 @@
 import os
 import logging
 from telegram import Update
-from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
+from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, filters
 from notion_client import Client
 
 # Load API keys
@@ -31,18 +31,9 @@ def is_allowed(update: Update):
             return True
         return chat_id in ALLOWED_GROUP_IDS
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_allowed(update):
-        return
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Bot ready! Send /query <game_name>")
-
-async def query_notion(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_allowed(update):
-        return
-    
-    query = " ".join(context.args)
+async def perform_notion_query(query, chat_id, message_to_reply):
     if not query:
-        await update.message.reply_text("Please provide a game name.")
+        await message_to_reply.reply_text("请输入要查询的游戏名称。")
         return
 
     # Basic query logic
@@ -57,18 +48,51 @@ async def query_notion(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     
     if not results["results"]:
-        await update.message.reply_text("No results found.")
+        await message_to_reply.reply_text("未找到相关结果。")
     else:
         # Simplistic display
         text = "\n".join([r['properties']['Name']['title'][0]['plain_text'] for r in results['results'][:5]])
-        await update.message.reply_text(f"Found:\n{text}")
+        await message_to_reply.reply_text(f"找到以下游戏:\n{text}")
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_allowed(update):
+        return
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Bot ready! @我并输入游戏名称，或者发送 /query <游戏名称>")
+
+async def query_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_allowed(update):
+        return
+    query = " ".join(context.args)
+    await perform_notion_query(query, update.effective_chat.id, update.message)
+
+async def handle_mention(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_allowed(update):
+        return
+    
+    # 获取消息文本，去掉 bot 的用户名部分
+    text = update.message.text or update.message.caption or ""
+    bot_username = context.bot.username
+    
+    # 清洗文本，去掉 @botname
+    query = text.replace(f"@{bot_username}", "").strip()
+    
+    # 如果是回复消息，也可以把被回复的那条消息的文本作为查询词（可选）
+    if not query and update.message.reply_to_message:
+        query = update.message.reply_to_message.text or ""
+
+    await perform_notion_query(query, update.effective_chat.id, update.message)
 
 if __name__ == '__main__':
     application = ApplicationBuilder().token(BOT_TOKEN).build()
     
-    start_handler = CommandHandler('start', start)
-    query_handler = CommandHandler('query', query_notion)
-    application.add_handler(start_handler)
-    application.add_handler(query_handler)
+    # 获取 bot 用户名用于清洗文本
+    # 注意：为了让 bot.username 有效，需要在启动时或者通过 get_me 获取
+    # 这里我们假设启动正常，应用会异步加载，但这儿简单起见直接用 command 处理器
+    
+    application.add_handler(CommandHandler('start', start))
+    application.add_handler(CommandHandler('query', query_command))
+    
+    # 处理 @mention 和回复
+    application.add_handler(MessageHandler(filters.Entity("mention") | filters.REPLY, handle_mention))
     
     application.run_polling()
