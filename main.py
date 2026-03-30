@@ -57,7 +57,7 @@ def format_game(r):
     if en_name and en_name != cn_name:
         full_name += f" / {en_name}"
         
-    result_lines = [f"🎮 游戏名称: {full_name}"]
+    result_lines = [f"游戏名称: {full_name}"]
     
     # 2. 平台版本
     version_str = ""
@@ -65,7 +65,7 @@ def format_game(r):
         versions = [v.get("name") for v in props["版本"]["multi_select"]]
         if versions:
             version_str = " & ".join(versions)
-            result_lines.append(f"💿 平台: {version_str}")
+            result_lines.append(f"平台: {version_str}")
             
     # 3. 类型
     type_str = ""
@@ -73,7 +73,7 @@ def format_game(r):
         types = [t.get("name") for t in props["类型"]["multi_select"]]
         if types:
             type_str = ", ".join(types)
-            result_lines.append(f"🏷️ 类型: {type_str}")
+            result_lines.append(f"类型: {type_str}")
 
     # 4. 入库日期 / 发售日
     date_str = "未知"
@@ -81,10 +81,10 @@ def format_game(r):
         date_str = props["入库日期"]["date"].get("start")
     elif "会免日期" in props and props["会免日期"].get("rich_text") and props["会免日期"]["rich_text"]:
         date_str = props["会免日期"]["rich_text"][0].get("plain_text", "未知")
-    result_lines.append(f"📅 入库日期: {date_str}")
+    result_lines.append(f"入库日期: {date_str}")
     
     if "发售日" in props and props["发售日"].get("date") and props["发售日"]["date"].get("start"):
-        result_lines.append(f"🎂 发售日: {props['发售日']['date']['start']}")
+        result_lines.append(f"发售日: {props['发售日']['date']['start']}")
         
     # 5. 档位及状态
     tier_str = ""
@@ -92,26 +92,26 @@ def format_game(r):
         tier_str = props["档位"]["select"].get("name", "")
         
     if not tier_str:
-        result_lines.append("💎 档位: 会免 (第一档)")
+        result_lines.append("档位: 会免 (第一档)")
     else:
         status_str = "未知"
         if "状态" in props and props["状态"].get("select"):
             status_str = props["状态"]["select"].get("name", "未知")
             
-        status_emoji = "✅" if status_str == "在库" else "❌"
-        result_lines.append(f"💎 档位: {tier_str} ({status_emoji} {status_str})")
+        # status_emoji logic removed
+        result_lines.append(f"档位: {tier_str} ({status_str})")
         
     # 6. 支持串流
     if "支持串流" in props and props["支持串流"].get("checkbox"):
-        result_lines.append("☁️ 云游戏: 支持串流")
+        result_lines.append("云游戏: 支持串流")
         
     # 7. 年龄评级
     if "年龄评级" in props and props["年龄评级"].get("select"):
-        result_lines.append(f"🔞 评级: {props['年龄评级']['select'].get('name')}")
+        result_lines.append(f"评级: {props['年龄评级']['select'].get('name')}")
         
     # 8. 商店链接
     if "商店链接" in props and props["商店链接"].get("url"):
-        result_lines.append(f"🔗 [PS Store]({props['商店链接']['url']})")
+        result_lines.append(f"[PS Store链接]({props['商店链接']['url']})")
         
     # 提取封面图片 URL 备用
     cover_url = None
