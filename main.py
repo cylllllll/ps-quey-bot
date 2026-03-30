@@ -2,7 +2,7 @@ import os
 import logging
 from math import ceil
 from dotenv import load_dotenv
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler, CallbackQueryHandler, filters
 from notion_client import Client, APIResponseError
 
@@ -28,6 +28,14 @@ def is_allowed(update: Update):
 
 def get_page_title(page):
     props = page.get("properties", {})
+    # Fallbacks for Name
+    for key in ["Name", "Aa Title", "游戏名称"]:
+        if key in props and props[key].get("type") == "title":
+            title_arr = props[key].get("title", [])
+            if title_arr:
+                return title_arr[0].get("plain_text", "未知标题")
+    
+    # Generic fallback
     for key, value in props.items():
         if value.get("type") == "title":
             title_arr = value.get("title", [])
@@ -38,52 +46,84 @@ def get_page_title(page):
 def format_game(r):
     props = r.get("properties", {})
     
-    # 1. 游戏名称
+    # 1. 游戏名称 (中英双语)
     cn_name = get_page_title(r)
     en_prop = props.get("英文名称", {})
     en_name = ""
-    if en_prop.get("type") == "rich_text" and en_prop.get("rich_text"):
+    if en_prop and en_prop.get("type") == "rich_text" and en_prop.get("rich_text"):
         en_name = en_prop["rich_text"][0].get("plain_text", "")
     
     full_name = cn_name
-    if en_name:
+    if en_name and en_name != cn_name:
         full_name += f" / {en_name}"
         
-    # 2. 入库日期 (兼容旧的 会免日期 或 Date)
+    result_lines = [f"🎮 游戏名称: {full_name}"]
+    
+    # 2. 平台版本
+    version_str = ""
+    if "版本" in props and props["版本"].get("multi_select"):
+        versions = [v.get("name") for v in props["版本"]["multi_select"]]
+        if versions:
+            version_str = " & ".join(versions)
+            result_lines.append(f"💿 平台: {version_str}")
+            
+    # 3. 类型
+    type_str = ""
+    if "类型" in props and props["类型"].get("multi_select"):
+        types = [t.get("name") for t in props["类型"]["multi_select"]]
+        if types:
+            type_str = ", ".join(types)
+            result_lines.append(f"🏷️ 类型: {type_str}")
+
+    # 4. 入库日期 / 发售日
     date_str = "未知"
-    if "入库日期" in props and props["入库日期"].get("date"):
-        date_str = props["入库日期"]["date"].get("start", "未知")
-    elif "会免日期" in props and props["会免日期"].get("rich_text"):
+    if "入库日期" in props and props["入库日期"].get("date") and props["入库日期"]["date"].get("start"):
+        date_str = props["入库日期"]["date"].get("start")
+    elif "会免日期" in props and props["会免日期"].get("rich_text") and props["会免日期"]["rich_text"]:
         date_str = props["会免日期"]["rich_text"][0].get("plain_text", "未知")
-    elif "Date" in props and props["Date"].get("date"):
-        date_str = props["Date"]["date"].get("start", "未知")
+    result_lines.append(f"📅 入库日期: {date_str}")
+    
+    if "发售日" in props and props["发售日"].get("date") and props["发售日"]["date"].get("start"):
+        result_lines.append(f"🎂 发售日: {props['发售日']['date']['start']}")
         
-    # 组装基础信息
-    result_lines = [f"游戏名称: {full_name}", f"入库日期: {date_str}"]
-        
-    # 3. 档位及状态逻辑 (区分会免和订阅)
+    # 5. 档位及状态
     tier_str = ""
     if "档位" in props and props["档位"].get("select"):
         tier_str = props["档位"]["select"].get("name", "")
         
     if not tier_str:
-        # 没有填写档位信息的，默认归为会免，且不显示状态
-        result_lines.append("档位: 会免")
+        result_lines.append("💎 档位: 会免 (第一档)")
     else:
-        # 有填写档位信息（如 2档 / 3档）
-        result_lines.append(f"档位: {tier_str}")
-        
-        # 订阅游戏需要显示出入库状态
         status_str = "未知"
         if "状态" in props and props["状态"].get("select"):
             status_str = props["状态"]["select"].get("name", "未知")
-        result_lines.append(f"状态: {status_str}")
+            
+        status_emoji = "✅" if status_str == "在库" else "❌"
+        result_lines.append(f"💎 档位: {tier_str} ({status_emoji} {status_str})")
         
-    return "\n".join(result_lines)
+    # 6. 支持串流
+    if "支持串流" in props and props["支持串流"].get("checkbox"):
+        result_lines.append("☁️ 云游戏: 支持串流")
+        
+    # 7. 年龄评级
+    if "年龄评级" in props and props["年龄评级"].get("select"):
+        result_lines.append(f"🔞 评级: {props['年龄评级']['select'].get('name')}")
+        
+    # 8. 商店链接
+    if "商店链接" in props and props["商店链接"].get("url"):
+        result_lines.append(f"🔗 [PS Store]({props['商店链接']['url']})")
+        
+    # 提取封面图片 URL 备用
+    cover_url = None
+    if "封面链接" in props and props["封面链接"].get("url"):
+        cover_url = props["封面链接"]["url"]
+        
+    formatted_text = "\n".join(result_lines)
+    return formatted_text, cover_url
 
 async def show_page(update: Update, context: ContextTypes.DEFAULT_TYPE, page: int):
     results = context.chat_data.get('results', [])
-    page_size = 3
+    page_size = 1 # Changed to 1 per page to accommodate large images and detailed text
     max_page = max(0, ceil(len(results) / page_size) - 1)
     page = max(0, min(page, max_page))
     context.chat_data['current_page'] = page
@@ -92,29 +132,60 @@ async def show_page(update: Update, context: ContextTypes.DEFAULT_TYPE, page: in
     end = start + page_size
     page_items = results[start:end]
 
-    text = ""
-    formatted_games = [format_game(r) for r in page_items]
-    text += "\n\n".join(formatted_games)
+    if not page_items:
+        return
+
+    item = page_items[0]
+    text, cover_url = format_game(item)
     
-    # 在底部补充页码信息 (如果只有一页就不补充了)
     if max_page > 0:
-        text += f"\n\n(第 {page + 1}/{max_page + 1} 页)"
+        text += f"\n\n*(第 {page + 1}/{max_page + 1} 个结果)*"
 
     buttons = []
     if page > 0:
-        buttons.append(InlineKeyboardButton("⬅️ 上一页", callback_data="prev"))
+        buttons.append(InlineKeyboardButton("⬅️ 上一个", callback_data="prev"))
     if page < max_page:
-        buttons.append(InlineKeyboardButton("下一页 ➡️", callback_data="next"))
+        buttons.append(InlineKeyboardButton("下一个 ➡️", callback_data="next"))
     
     reply_markup = InlineKeyboardMarkup([buttons]) if buttons else None
 
+    # Handle CallbackQuery (Pagination)
     if hasattr(update, 'callback_query') and update.callback_query:
-        await update.callback_query.edit_message_text(text, reply_markup=reply_markup)
-    elif hasattr(update, 'effective_message') and update.effective_message:
-        await update.effective_message.reply_text(text, reply_markup=reply_markup)
+        query = update.callback_query
+        try:
+            if cover_url:
+                # If we have an image, edit media
+                await query.edit_message_media(
+                    media=InputMediaPhoto(media=cover_url, caption=text, parse_mode="Markdown"),
+                    reply_markup=reply_markup
+                )
+            else:
+                # If no image but message has photo, we must remove it or edit caption (Telegram doesn't easily let you edit photo to text, so we edit caption)
+                # If the original was a text message without media, edit_message_text
+                try:
+                    await query.edit_message_media(
+                        media=InputMediaPhoto(media="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/React-icon.svg/512px-React-icon.svg.png", caption=text, parse_mode="Markdown"),
+                        reply_markup=reply_markup
+                    )
+                except Exception:
+                    await query.edit_message_text(text, reply_markup=reply_markup, parse_mode="Markdown", disable_web_page_preview=True)
+        except Exception as e:
+            logging.error(f"Error editing message: {e}")
+            # Fallback
+            await query.message.reply_text(text, reply_markup=reply_markup, parse_mode="Markdown", disable_web_page_preview=True)
+
+    # Handle New Message (Search Query)
     else:
-        # Fallback if passed a raw Message
-        await update.reply_text(text, reply_markup=reply_markup)
+        target_message = None
+        if hasattr(update, 'effective_message') and update.effective_message:
+            target_message = update.effective_message
+        else:
+            target_message = update
+
+        if cover_url:
+            await target_message.reply_photo(photo=cover_url, caption=text, reply_markup=reply_markup, parse_mode="Markdown")
+        else:
+            await target_message.reply_text(text, reply_markup=reply_markup, parse_mode="Markdown", disable_web_page_preview=True)
 
 async def perform_notion_query(query, chat_id, message_to_reply, context: ContextTypes.DEFAULT_TYPE):
     if not query:
@@ -122,7 +193,6 @@ async def perform_notion_query(query, chat_id, message_to_reply, context: Contex
         return
 
     try:
-        # 使用全局 Search API 拉取候选名单
         raw_results = notion.search(
             query=query,
             filter={
@@ -131,19 +201,25 @@ async def perform_notion_query(query, chat_id, message_to_reply, context: Contex
             }
         ).get("results", [])
 
-        # 在本地进行严格清洗过滤
         filtered_results = []
         target_db = DATABASE_ID.replace("-", "")
         
         for r in raw_results:
-            # 1. 确保该页面属于我们的目标数据库
             parent_db = r.get("parent", {}).get("database_id", "").replace("-", "")
             if parent_db != target_db:
                 continue
             
-            # 2. 确保游戏标题中确实包含搜索关键字（忽略大小写）
             title = get_page_title(r)
-            if query.lower() in title.lower():
+            
+            # Extract English title to match against
+            en_name = ""
+            props = r.get("properties", {})
+            en_prop = props.get("英文名称", {})
+            if en_prop and en_prop.get("type") == "rich_text" and en_prop.get("rich_text"):
+                en_name = en_prop["rich_text"][0].get("plain_text", "")
+
+            # Match either Chinese or English title
+            if query.lower() in title.lower() or query.lower() in en_name.lower():
                 filtered_results.append(r)
                 
         results = {"results": filtered_results}
