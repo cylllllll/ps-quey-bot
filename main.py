@@ -158,21 +158,26 @@ async def show_page(update: Update, context: ContextTypes.DEFAULT_TYPE, page: in
     if hasattr(update, 'callback_query') and update.callback_query:
         query = update.callback_query
         try:
+            is_photo_message = bool(query.message.photo)
+            
             if cover_url:
-                # If we have an image, edit media
-                await query.edit_message_media(
-                    media=InputMediaPhoto(media=cover_url, caption=text, parse_mode="Markdown"),
-                    reply_markup=reply_markup
-                )
-            else:
-                # If no image but message has photo, we must remove it or edit caption (Telegram doesn't easily let you edit photo to text, so we edit caption)
-                # If the original was a text message without media, edit_message_text
-                try:
+                if is_photo_message:
+                    # Photo -> Photo (edit media)
                     await query.edit_message_media(
-                        media=InputMediaPhoto(media="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/React-icon.svg/512px-React-icon.svg.png", caption=text, parse_mode="Markdown"),
+                        media=InputMediaPhoto(media=cover_url, caption=text, parse_mode="Markdown"),
                         reply_markup=reply_markup
                     )
-                except Exception:
+                else:
+                    # Text -> Photo (delete & resend)
+                    await query.message.delete()
+                    await query.message.reply_photo(photo=cover_url, caption=text, reply_markup=reply_markup, parse_mode="Markdown")
+            else:
+                if is_photo_message:
+                    # Photo -> Text (delete & resend)
+                    await query.message.delete()
+                    await query.message.reply_text(text, reply_markup=reply_markup, parse_mode="Markdown", disable_web_page_preview=True)
+                else:
+                    # Text -> Text (edit text)
                     await query.edit_message_text(text, reply_markup=reply_markup, parse_mode="Markdown", disable_web_page_preview=True)
         except Exception as e:
             logging.error(f"Error editing message: {e}")
