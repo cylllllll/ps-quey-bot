@@ -1,4 +1,5 @@
 import os
+import uuid
 import logging
 from math import ceil
 from dotenv import load_dotenv
@@ -121,8 +122,8 @@ def format_game(r):
     formatted_text = "\n".join(result_lines)
     return formatted_text, cover_url
 
-async def show_page(update: Update, context: ContextTypes.DEFAULT_TYPE, page: int):
-    results = context.chat_data.get('results', [])
+async def show_page(update: Update, context: ContextTypes.DEFAULT_TYPE, page: int, query_id: str = 'results'):
+    results = context.chat_data.get(query_id, [])
     page_size = 1 # Changed to 1 per page to accommodate large images and detailed text
     max_page = max(0, ceil(len(results) / page_size) - 1)
     page = max(0, min(page, max_page))
@@ -143,9 +144,9 @@ async def show_page(update: Update, context: ContextTypes.DEFAULT_TYPE, page: in
 
     buttons = []
     if page > 0:
-        buttons.append(InlineKeyboardButton("⬅️ 上一个", callback_data="prev"))
+        buttons.append(InlineKeyboardButton("⬅️ 上一个", callback_data=f"page:{query_id}:{page - 1}"))
     if page < max_page:
-        buttons.append(InlineKeyboardButton("下一个 ➡️", callback_data="next"))
+        buttons.append(InlineKeyboardButton("下一个 ➡️", callback_data=f"page:{query_id}:{page + 1}"))
     
     reply_markup = InlineKeyboardMarkup([buttons]) if buttons else None
 
@@ -236,17 +237,19 @@ async def perform_notion_query(query, chat_id, message_to_reply, context: Contex
     if not results["results"]:
         await message_to_reply.reply_text("未找到相关结果。")
     else:
-        context.chat_data['results'] = results["results"]
-        await show_page(update=message_to_reply, context=context, page=0)
+        query_id = str(uuid.uuid4())[:8]
+        context.chat_data[query_id] = results["results"]
+        await show_page(update=message_to_reply, context=context, page=0, query_id=query_id)
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    current_page = context.chat_data.get('current_page', 0)
-    if query.data == "next":
-        await show_page(update, context, current_page + 1)
-    elif query.data == "prev":
-        await show_page(update, context, current_page - 1)
+    
+    data = query.data
+    if data.startswith("page:"):
+        _, query_id, page_str = data.split(":")
+        target_page = int(page_str)
+        await show_page(update, context, target_page, query_id)
 
 async def handle_mention(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message: return
