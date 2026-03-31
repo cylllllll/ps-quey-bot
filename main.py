@@ -116,8 +116,12 @@ def format_game(r):
         
     # 提取封面图片 URL 备用
     cover_url = None
-    if "封面链接" in props and props["封面链接"].get("url"):
-        cover_url = props["封面链接"]["url"]
+    parent_db = r.get("parent", {}).get("database_id", "").replace("-", "")
+    
+    # 只有主同步库(第一档位以后的二/三档游戏)才显示封面图片
+    if parent_db == DATABASE_IDS[0]:
+        if "封面链接" in props and props["封面链接"].get("url"):
+            cover_url = props["封面链接"]["url"]
         
     formatted_text = "\n".join(result_lines)
     return formatted_text, cover_url
