@@ -157,6 +157,7 @@ async def show_page(update: Update, context: ContextTypes.DEFAULT_TYPE, page: in
     # Handle CallbackQuery (Pagination)
     if hasattr(update, 'callback_query') and update.callback_query:
         query = update.callback_query
+        chat_id = query.message.chat_id
         try:
             is_photo_message = bool(query.message.photo)
             
@@ -168,21 +169,21 @@ async def show_page(update: Update, context: ContextTypes.DEFAULT_TYPE, page: in
                         reply_markup=reply_markup
                     )
                 else:
-                    # Text -> Photo (delete & resend)
+                    # Text -> Photo (delete & send new)
                     await query.message.delete()
-                    await query.message.reply_photo(photo=cover_url, caption=text, reply_markup=reply_markup, parse_mode="Markdown")
+                    await context.bot.send_photo(chat_id=chat_id, photo=cover_url, caption=text, reply_markup=reply_markup, parse_mode="Markdown")
             else:
                 if is_photo_message:
-                    # Photo -> Text (delete & resend)
+                    # Photo -> Text (delete & send new)
                     await query.message.delete()
-                    await query.message.reply_text(text, reply_markup=reply_markup, parse_mode="Markdown", disable_web_page_preview=True)
+                    await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=reply_markup, parse_mode="Markdown", disable_web_page_preview=True)
                 else:
                     # Text -> Text (edit text)
                     await query.edit_message_text(text, reply_markup=reply_markup, parse_mode="Markdown", disable_web_page_preview=True)
         except Exception as e:
             logging.error(f"Error editing message: {e}")
             # Fallback
-            await query.message.reply_text(text, reply_markup=reply_markup, parse_mode="Markdown", disable_web_page_preview=True)
+            await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=reply_markup, parse_mode="Markdown", disable_web_page_preview=True)
 
     # Handle New Message (Search Query)
     else:
