@@ -12,7 +12,7 @@ load_dotenv()
 # Load API keys
 BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 NOTION_TOKEN = os.getenv("NOTION_API_KEY")
-DATABASE_ID = os.getenv("NOTION_DATABASE_ID")
+DATABASE_IDS = [db.replace("-", "").strip() for db in os.getenv("NOTION_DATABASE_ID", "").split(",") if db.strip()]
 ALLOWED_GROUP_IDS = os.getenv("ALLOWED_GROUP_IDS", "").split(",")
 ALLOWED_USER_IDS = os.getenv("ALLOWED_USER_IDS", "").split(",")
 
@@ -202,16 +202,16 @@ async def perform_notion_query(query, chat_id, message_to_reply, context: Contex
         ).get("results", [])
 
         filtered_results = []
-        target_db = DATABASE_ID.replace("-", "")
         
         for r in raw_results:
             parent_db = r.get("parent", {}).get("database_id", "").replace("-", "")
-            if parent_db != target_db:
+            if parent_db not in DATABASE_IDS:
                 continue
             
             # Skip old/legacy items that don't have a Concept ID (un-synced)
             props = r.get("properties", {})
-            if "Concept ID" not in props:
+            concept_id_prop = props.get("Concept ID", {})
+            if not concept_id_prop or concept_id_prop.get("number") is None:
                 continue
                 
             title = get_page_title(r)
