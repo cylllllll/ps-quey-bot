@@ -209,6 +209,11 @@ async def perform_notion_query(query, chat_id, message_to_reply, context: Contex
             if parent_db != target_db:
                 continue
             
+            # Skip old/legacy items that don't have a Concept ID (un-synced)
+            props = r.get("properties", {})
+            if "Concept ID" not in props:
+                continue
+                
             title = get_page_title(r)
             
             # Extract English title to match against
