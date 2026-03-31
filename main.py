@@ -155,6 +155,8 @@ async def show_page(update: Update, context: ContextTypes.DEFAULT_TYPE, page: in
     reply_markup = InlineKeyboardMarkup([buttons]) if buttons else None
 
     # Handle CallbackQuery (Pagination)
+    reply_to_message_id = context.chat_data.get(f"{query_id}_msg_id")
+    
     if hasattr(update, 'callback_query') and update.callback_query:
         query = update.callback_query
         chat_id = query.message.chat_id
@@ -171,19 +173,19 @@ async def show_page(update: Update, context: ContextTypes.DEFAULT_TYPE, page: in
                 else:
                     # Text -> Photo (delete & send new)
                     await query.message.delete()
-                    await context.bot.send_photo(chat_id=chat_id, photo=cover_url, caption=text, reply_markup=reply_markup, parse_mode="Markdown")
+                    await context.bot.send_photo(chat_id=chat_id, photo=cover_url, caption=text, reply_markup=reply_markup, parse_mode="Markdown", reply_to_message_id=reply_to_message_id)
             else:
                 if is_photo_message:
                     # Photo -> Text (delete & send new)
                     await query.message.delete()
-                    await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=reply_markup, parse_mode="Markdown", disable_web_page_preview=True)
+                    await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=reply_markup, parse_mode="Markdown", disable_web_page_preview=True, reply_to_message_id=reply_to_message_id)
                 else:
                     # Text -> Text (edit text)
                     await query.edit_message_text(text, reply_markup=reply_markup, parse_mode="Markdown", disable_web_page_preview=True)
         except Exception as e:
             logging.error(f"Error editing message: {e}")
             # Fallback
-            await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=reply_markup, parse_mode="Markdown", disable_web_page_preview=True)
+            await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=reply_markup, parse_mode="Markdown", disable_web_page_preview=True, reply_to_message_id=reply_to_message_id)
 
     # Handle New Message (Search Query)
     else:
@@ -249,6 +251,7 @@ async def perform_notion_query(query, chat_id, message_to_reply, context: Contex
     else:
         query_id = str(uuid.uuid4())[:8]
         context.chat_data[query_id] = results["results"]
+        context.chat_data[f"{query_id}_msg_id"] = message_to_reply.message_id
         await show_page(update=message_to_reply, context=context, page=0, query_id=query_id)
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
