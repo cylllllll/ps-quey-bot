@@ -203,16 +203,19 @@ async def perform_notion_query(query, chat_id, message_to_reply, context: Contex
 
         filtered_results = []
         
+        # Check if it belongs to one of our target databases
         for r in raw_results:
             parent_db = r.get("parent", {}).get("database_id", "").replace("-", "")
             if parent_db not in DATABASE_IDS:
                 continue
             
-            # Skip old/legacy items that don't have a Concept ID (un-synced)
+            # Skip old/legacy items that don't have a Concept ID ONLY for the synced library (usually the first DB)
+            # The second database (e.g. Monthly free games) might be manually managed and lack a Concept ID.
             props = r.get("properties", {})
-            concept_id_prop = props.get("Concept ID", {})
-            if not concept_id_prop or concept_id_prop.get("number") is None:
-                continue
+            if parent_db == DATABASE_IDS[0]:
+                concept_id_prop = props.get("Concept ID", {})
+                if not concept_id_prop or concept_id_prop.get("number") is None:
+                    continue
                 
             title = get_page_title(r)
             
